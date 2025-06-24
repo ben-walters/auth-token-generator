@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ben-walters/auth-token-generator"
+    "url": "git+https://github.com/ben-walters/auth-token-generator.git"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
