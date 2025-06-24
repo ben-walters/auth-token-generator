@@ -1,240 +1,211 @@
-# Koa Middleware Test Utils
+# Auth Token Generator
 
-[![NPM Version](https://img.shields.io/npm/v/koa-mock-ctx.svg)](https://www.npmjs.com/package/koa-mock-ctx)
-[![CI](https://github.com/ben-walters/koa-mock-ctx/actions/workflows/release.yaml/badge.svg)](https://github.com/ben-walters/koa-mock-ctx/actions)
-[![codecov](https://codecov.io/gh/ben-walters/koa-mock-ctx/graph/badge.svg)](https://codecov.io/gh/ben-walters/koa-mock-ctx)
+[![NPM Version](https://img.shields.io/npm/v/auth-token-generator.svg)](https://www.npmjs.com/package/auth-token-generator)
+[![CI](https://github.com/ben-walters/auth-token-generator/actions/workflows/release.yaml/badge.svg)](https://github.com/ben-walters/auth-token-generator/actions)
+[![codecov](https://codecov.io/gh/ben-walters/auth-token-generator/graph/badge.svg)](https://codecov.io/gh/ben-walters/auth-token-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A lightweight utility for testing Koa middleware in complete isolation. This toolkit allows you to craft precise, fast, and reliable unit tests for your middleware without needing to run a live server.
-
-It provides a powerful factory to create mock Koa `Context` objects, integrates seamlessly with Jest, and includes a standard `compose` function to test middleware chains.
+A robust utility for generating JSON Web Tokens (JWTs) with support for tenant-based permissions, user payload customization, and flexible signing options. This package is ideal for applications requiring secure and scalable authentication and authorization mechanisms.
 
 ## Features
 
-- **Type-Safe Testing Engine**: Define types for your setup, providing a first-class TypeScript experience.
-- **Test Isolation by Design**: The factory pattern ensures every test runs in a pristine, isolated context.
-- **Realistic Mocking**: Accurately mocks Koa's context, request, and response objects and methods.
-- **Built-in Body Parser Simulation**: Easily test middleware that requires a parsed request body or files.
-- **Jest Integration**: The mocked `next` function is a `jest.Mock` instance, ready for assertions.
-- **Zero Dependencies**: Other than Koa itself.
+- **Tenant-Based Permissions**: Easily manage user roles and permissions across multiple tenants.
+- **Customizable Payload**: Define user-specific payload options, including metadata like account type, verification status, and more.
+- **Flexible Signing Options**: Supports symmetric and asymmetric algorithms for signing tokens.
+- **Built-in Expiration Handling**: Configure token expiration with absolute or relative time settings.
+- **TypeScript Support**: Fully typed interfaces for payloads, tenants, and configuration options.
 
 ## Installation
 
 ```bash
-npm install --save-dev koa-mock-ctx
+npm install auth-token-generator
 ```
 
 ```bash
-yarn add --dev koa-mock-ctx
+yarn add auth-token-generator
 ```
 
 ## Usage
 
-This library is designed to scale with your testing needs, from the simplest middleware to complex, type-augmented contexts.
+This library is designed to simplify the process of generating JWTs for authentication and authorization.
 
-### Pattern 1: The Basics
+### Basic Example
 
-For simple middleware, you can import and use `mockContext` directly. It's a ready-to-use generator for basic test cases.
+Create an access token for a user with default settings.
 
-**Middleware (`src/middleware/set-header.ts`):**
-
-```typescript
-import * as Koa from 'koa';
-
-export const setApiHeader = async (ctx: Koa.Context, next: Koa.Next) => {
-  ctx.set('X-API-Version', 'v2');
-  await next();
-};
-```
-
-**Test (`__tests__/set-header.test.ts`):**
+**Code (`src/example.ts`):**
 
 ```typescript
-import { setApiHeader } from '../src/middleware/set-header';
-import { mockContext } from 'koa-mock-ctx';
+import { AccessTokenGenerator } from 'auth-token-generator';
 
-describe('setApiHeader Middleware', () => {
-  it('should set the X-API-Version header', async () => {
-    // Arrange: Create a basic context.
-    const [ctx, next] = mockContext();
-
-    // Act: Run the middleware.
-    await setApiHeader(ctx, next);
-
-    // Assert: Check the response header and that next was called.
-    expect(ctx.response.get('X-API-Version')).toBe('v2');
-    expect(next).toHaveBeenCalledTimes(1);
-  });
+const generator = new AccessTokenGenerator({
+  payloadOptions: {
+    email: 'user@example.com',
+    accountType: 'Admin',
+    verified: true,
+  },
+  signingKey: 'your-secret-key',
 });
+
+const token = generator.getJWT({ expiredIn: '1h' });
+console.log(token);
 ```
 
-### Pattern 2: Type-Safe Body Parsing (Recommended)
+### Tenant-Based Permissions
 
-For real-world applications, you'll need to test middleware that reads the request body. The recommended approach is to create a pre-configured, type-safe "engine" for your test suite.
+Generate a token with tenant-specific roles and permissions.
 
-**Step 1: Create a Typed Engine**
-
-In a shared test helper file, create an engine that simulates the presence of a body-parser.
-
-**`__tests__/helpers.ts`**
+**Code (`src/example-tenants.ts`):**
 
 ```typescript
-import { createKoaMockCtx } from 'koa-mock-ctx';
+import { AccessTokenGenerator } from 'auth-token-generator';
 
-// Create an engine that simulates a body-parser being present.
-// The returned `testCtxEngine` is now permanently type-safe for this setup.
-export const testCtxEngine = createKoaMockCtx({
-  bodyParser: true,
+const generator = new AccessTokenGenerator({
+  payloadOptions: {
+    email: 'user@example.com',
+    accountType: 'User',
+    verified: true,
+  },
+  signingKey: 'your-secret-key',
+  tenants: [
+    { id: 'tenant1', role: 'Admin', permissions: ['read', 'write'] },
+    { id: 'tenant2', role: 'Viewer', permissions: ['read'] },
+  ],
 });
+
+const token = generator.getJWT({ expiredIn: '2h' });
+console.log(token);
 ```
 
-**Step 2: Use Your Engine in Tests**
+### Advanced Configuration
 
-Import your custom engine. Its `.create()` method will generate perfectly typed contexts where `ctx.request.body` is available.
+Use an asymmetric signing algorithm and configure additional options.
 
-**`__tests__/process-user.test.ts`**
+**Code (`src/example-advanced.ts`):**
 
 ```typescript
-import { testCtxEngine } from './helpers';
-import { processUser } from '../src/middleware/process-user'; // Your middleware
+import { AccessTokenGenerator } from 'auth-token-generator';
+import { readFileSync } from 'fs';
 
-describe('processUser Middleware', () => {
-  it('should greet the user when a name is provided', async () => {
-    // Arrange: Use the engine to create a context with a request body.
-    const [ctx] = testCtxEngine.create({
-      requestBody: { name: 'Alice' },
-    });
+const privateKey = readFileSync('./private-key.pem');
 
-    // Act: Run the middleware.
-    await processUser(ctx);
-
-    // Assert: The context is typed correctly, and the test is clean.
-    expect(ctx.body).toEqual({ message: `Hello, Alice` });
-  });
-});
-```
-
----
-
-## Troubleshooting
-
-### Argument of type 'MockKoaContext' is not assignable to parameter of type (1)
-
-_PROBLEM_ - You run into an invalid type signature along the lines of:
-
-```
-
-const [ctx, next] = mockContext();
-
-await myMiddleware(ctx, next);  // ERROR
-
-// Property 'body' is optional in type 'MockKoaRequest' but required in type 'Request'.
-```
-
-_SOLUTION_ - You are using the basic "out-the-box" Koa context, without `@koa/bodyparser`. Create a factory which flags `bodyParser: true` and use that to create you ctx. This can be done via a helper and imported throughout your tests:
-
-```
-// Add this
-const ctxFactory = createKoaMockCtx({
-    bodyParser: true,
+const generator = new AccessTokenGenerator({
+  payloadOptions: {
+    email: 'user@example.com',
+    accountType: 'User',
+    verified: true,
+  },
+  signingKey: privateKey,
+  algorithm: 'RS256',
+  issuer: 'my-app',
 });
 
-// Use like this
-const [ctx, next] = ctxFactory.create({
-            requestBody: {
-                body: 'message body',
-            },
-        });
-await updateClientNoteValidation(ctx, next); // FIXED!
-
+const token = generator.getJWT({
+  expiresAt: new Date(Date.now() + 3600 * 1000),
+});
+console.log(token);
 ```
 
 ---
 
 ## API Reference
 
-### `createKoaMockCtx(engineOptions?, baseOptions?)`
+### `AccessTokenGenerator`
 
-The main factory function for creating a type-safe mock context engine.
+The main class for generating JWTs.
 
-- `engineOptions?: KoaMockCtxOptions`: Configuration for the engine's behavior and types.
-  - `bodyParser: boolean`: If `true`, the engine will produce contexts where `request.body` and `request.files` are available, simulating a body-parser. Defaults to `false`.
-- `baseOptions?: MockContextOptions`: Default values (e.g., a base `state` object) to apply to every context created by this engine.
-
-Returns an engine object with a single method:
-
-- `.create(overrideOptions?: MockContextOptions)`: Creates a new, isolated `[ctx, next]` tuple.
-
-### `mockContext(options?: MockContextOptions)`
-
-A default, ready-to-use generator for simple test cases where no special types are needed. It is a shortcut for `createKoaMockCtx().create`.
-
-### `compose(middleware: Koa.Middleware[])`
-
-A standard Koa middleware composer for testing a chain of middleware.
-
-### `MockContextOptions`
-
-The options object for creating a context.
-
-| Property         | Type                                     | Description                                                 | Default      |
-| :--------------- | :--------------------------------------- | :---------------------------------------------------------- | :----------- |
-| `state`          | `Record<string, any>`                    | The initial `ctx.state` object.                             | `{}`         |
-| `requestHeaders` | `Record<string, string \| string[]>`     | **Request headers**. Populates `ctx.headers`.               | `{}`         |
-| `method`         | `string`                                 | The request method.                                         | `'GET'`      |
-| `url`            | `string`                                 | The request URL.                                            | `'/'`        |
-| `requestBody`    | `unknown`                                | The initial **request body**. Populates `ctx.request.body`. | `undefined`  |
-| `files`          | `Record<string, MockFile \| MockFile[]>` | Mock files for multipart requests.                          | `undefined`  |
-| `cookies`        | `Record<string, string>`                 | Initial cookies available via `ctx.cookies.get()`.          | `{}`         |
-| `host`           | `string`                                 | The request host.                                           | `'test.com'` |
-| `...`            | `any`                                    | Any other properties are attached directly to the `ctx`.    |              |
-
-### Context Helper Methods
-
-The mock context object (`ctx`) includes several convenience methods to simulate the work of upstream middleware or to simplify test setup.
-
-- `ctx.setBody(body: unknown)`: Sets the **request** body. A shortcut for `ctx.request.body = body;`.
-- `ctx.setHeaders(headers: Record<string, ...>)`: Sets multiple **request** headers at once.
-- `ctx.setCookies(cookies: Record<string, string>)`: Sets multiple cookies at once.
-
-**Example:**
+#### Constructor
 
 ```typescript
-import { mockContext } from 'koa-mock-ctx';
-
-it('should use the helper methods for setup', async () => {
-  // Arrange: Create a blank context
-  const [ctx, next] = mockContext();
-
-  // Arrange: Use helpers to simulate the state left by upstream middleware
-  ctx.setHeaders({ 'x-api-key': '12345' });
-  ctx.setCookies({ session: 'abc-xyz' });
-  ctx.setBody({ name: 'test-user' });
-
-  // Act
-  await yourMiddleware(ctx, next);
-
-  // Assert
-  expect(ctx.get('x-api-key')).toBe('12345');
-  expect(ctx.cookies.get('session')).toBe('abc-xyz');
-  expect(ctx.request.body).toEqual({ name: 'test-user' });
+new AccessTokenGenerator(params: {
+  payloadOptions: TokenPayloadOptions;
+  signingKey: string | Buffer | KeyObject;
+  algorithm?: jwt.Algorithm;
+  tenants?: TenantPermissions[];
+  issuer?: string;
+  type?: string;
 });
 ```
 
-### Included Helpers
+- `payloadOptions`: Configuration for the user payload.
+- `signingKey`: The key used to sign the token (string, buffer, or key object).
+- `algorithm`: The signing algorithm (default: `'HS256'`).
+- `tenants`: Optional tenant-specific roles and permissions.
+- `issuer`: The token issuer (default: `'my-issuer'`).
+- `type`: The token type (default: `'access'`).
 
-For convenience, `http-assert` and `http-errors` are re-exported.
+#### Methods
 
-```typescript
-import { httpAssert, HttpErrors } from 'koa-mock-ctx';
-```
+##### `addTenant(tenant: TenantPermissions): this`
+
+Adds a tenant to the token.
+
+##### `removeTenant(tenantId: string): this`
+
+Removes a tenant from the token.
+
+##### `reset(): this`
+
+Resets the tenant list to the original state.
+
+##### `getJWT(opts: { expiresAt?: Date; expiredIn?: string }): string`
+
+Generates a signed JWT.
+
+- `expiresAt`: Absolute expiration time.
+- `expiredIn`: Relative expiration time (e.g., `'15m'`).
+
+---
+
+## Interfaces
+
+### `TokenPayloadOptions`
+
+Defines the user payload options.
+
+| Property      | Type       | Description                          | Default        |
+| :------------ | :--------- | :----------------------------------- | :------------- |
+| `email`       | `string`   | User's email address.                | **Required**   |
+| `firstName`   | `string?`  | User's first name.                   | `undefined`    |
+| `lastName`    | `string?`  | User's last name.                    | `undefined`    |
+| `permissions` | `string[]` | User's permissions.                  | `[]`           |
+| `id`          | `string?`  | User's unique ID.                    | `randomUUID()` |
+| `createdAt`   | `string?`  | Account creation timestamp.          | `new Date()`   |
+| `verified`    | `boolean?` | Whether the account is verified.     | `true`         |
+| `accountType` | `string?`  | Type of account (e.g., Admin, User). | `'User'`       |
+| `imageUrl`    | `string?`  | URL to the user's profile image.     | `undefined`    |
+| `masterKey`   | `string?`  | Optional master key for the token.   | `undefined`    |
+
+### `TenantPermissions`
+
+Defines tenant-specific roles and permissions.
+
+| Property      | Type       | Description                    |
+| :------------ | :--------- | :----------------------------- |
+| `id`          | `string`   | Tenant ID.                     |
+| `role`        | `string`   | Role within the tenant.        |
+| `permissions` | `string[]` | Permissions within the tenant. |
+
+---
+
+## Troubleshooting
+
+### Buffer Key Warning
+
+If you use a `Buffer` key with the default `'HS256'` algorithm, you may see a warning:
+
+> Warning: Using a Buffer key with the default 'HS256' algorithm. Consider specifying an asymmetric algorithm like 'RS256'.
+
+_Solution_: Use an asymmetric algorithm (e.g., `'RS256'`) for better security.
+
+---
 
 ## Contributing
 
-If you have suggestions for how this project could be improved, or want to report a bug, open an issue! I'd love all and any contributions.
+If you have suggestions for how this project could be improved, or want to report a bug, open an issue! Contributions are welcome.
 
-For more, check out the [Contributing Guide](CONTRIBUTING.md).
+---
 
 ## License
 
-[MIT](LICENSE) © 2025 Ben Walters
+[MIT](LICENSE) © 2025 Your Name
