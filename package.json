@@ -1,5 +1,5 @@
 {
-  "name": "auth-token-generator",
+  "name": "access-token-generator",
   "version": "0.2.2",
   "description": "A lightweight utility for generating, modifying, and resetting auth tokens for tests.",
   "author": "Ben Walters <awesomeshinythings@proton.me>",

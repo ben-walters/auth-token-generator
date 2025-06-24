@@ -1,4 +1,4 @@
-# Auth Token Generator
+# Access Token Generator
 
 [![NPM Version](https://img.shields.io/npm/v/auth-token-generator.svg)](https://www.npmjs.com/package/auth-token-generator)
 [![CI](https://github.com/ben-walters/auth-token-generator/actions/workflows/release.yaml/badge.svg)](https://github.com/ben-walters/auth-token-generator/actions)
@@ -18,11 +18,11 @@ A robust utility for generating JSON Web Tokens (JWTs) with support for tenant-b
 ## Installation
 
 ```bash
-npm install auth-token-generator
+npm install access-token-generator
 ```
 
 ```bash
-yarn add auth-token-generator
+yarn add access-token-generator
 ```
 
 ## Usage
@@ -36,7 +36,7 @@ Create an access token for a user with default settings.
 **Code (`src/example.ts`):**
 
 ```typescript
-import { AccessTokenGenerator } from 'auth-token-generator';
+import { AccessTokenGenerator } from 'access-token-generator';
 
 const generator = new AccessTokenGenerator({
   payloadOptions: {
