@@ -129,7 +129,7 @@ export class AccessTokenGenerator {
     return this;
   }
 
-  public getJWT(opts: { expiresAt?: Date; expiredIn?: string }): string {
+  public getJWT(opts: { expiresAt?: Date; expiredIn?: string } = {}): string {
     const payload = {
       typ: this.type,
       user: this.user,

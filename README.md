@@ -106,6 +106,91 @@ const token = generator.getJWT({
 console.log(token);
 ```
 
+### Using `AccessTokenGenerator` in Tests
+
+Here’s an example of how you might use the `AccessTokenGenerator` in a test suite. This demonstrates setting up a base tenant, adding/removing tenants, generating a new JWT for each test, and resetting the state before each test.
+
+**Test (`__tests__/auth-token-generator.test.ts`):**
+
+```typescript
+import { AccessTokenGenerator } from 'auth-token-generator';
+
+describe('AccessTokenGenerator', () => {
+  let generator: AccessTokenGenerator;
+
+  beforeEach(() => {
+    // Arrange: Set up the generator with a base tenant
+    generator = new AccessTokenGenerator({
+      payloadOptions: {
+        email: 'user@example.com',
+        accountType: 'User',
+        verified: true,
+      },
+      signingKey: 'test-secret-key',
+      tenants: [
+        { id: 'base-tenant', role: 'Admin', permissions: ['read', 'write'] },
+      ],
+    });
+
+    // Reset the generator to its initial state before each test
+    generator.reset();
+  });
+
+  it('should generate a JWT with the base tenant', () => {
+    // Act: Generate a JWT
+    const token = generator.getJWT({ expiredIn: '1h' });
+
+    // Assert: Verify the token contains the base tenant
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64').toString()
+    );
+    expect(payload.tenants['base-tenant']).toEqual({
+      r: 'Admin',
+      p: ['read', 'write'],
+    });
+  });
+
+  it('should add a new tenant and include it in the JWT', () => {
+    // Act: Add a new tenant and generate a JWT
+    generator.addTenant({
+      id: 'new-tenant',
+      role: 'Viewer',
+      permissions: ['read'],
+    });
+    const token = generator.getJWT({ expiredIn: '1h' });
+
+    // Assert: Verify the token contains the new tenant
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64').toString()
+    );
+    expect(payload.tenants['new-tenant']).toEqual({
+      r: 'Viewer',
+      p: ['read'],
+    });
+  });
+
+  it('should remove a tenant and exclude it from the JWT', () => {
+    // Act: Remove the base tenant and generate a JWT
+    generator.removeTenant('base-tenant');
+    const token = generator.getJWT({ expiredIn: '1h' });
+
+    // Assert: Verify the token no longer contains the base tenant
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64').toString()
+    );
+    expect(payload.tenants['base-tenant']).toBeUndefined();
+  });
+});
+```
+
+### Key Points:
+
+- **`beforeEach`**: Resets the generator to its initial state before each test using the `.reset()` method.
+- **Adding/Removing Tenants**: Use `.addTenant()` and `.removeTenant()` to modify the tenants dynamically.
+- **JWT Generation**: A new JWT is generated for each test using `.getJWT()`.
+
+This setup ensures that each test runs in isolation with a clean state.
+
 ---
 
 ## API Reference
