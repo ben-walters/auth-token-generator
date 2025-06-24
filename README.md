@@ -1,8 +1,8 @@
 # Access Token Generator
 
-[![NPM Version](https://img.shields.io/npm/v/auth-token-generator.svg)](https://www.npmjs.com/package/auth-token-generator)
-[![CI](https://github.com/ben-walters/auth-token-generator/actions/workflows/release.yaml/badge.svg)](https://github.com/ben-walters/auth-token-generator/actions)
-[![codecov](https://codecov.io/gh/ben-walters/auth-token-generator/graph/badge.svg)](https://codecov.io/gh/ben-walters/auth-token-generator)
+[![NPM Version](https://img.shields.io/npm/v/access-token-generator.svg)](https://www.npmjs.com/package/access-token-generator)
+[![CI](https://github.com/ben-walters/access-token-generator/actions/workflows/release.yaml/badge.svg)](https://github.com/ben-walters/access-token-generator/actions)
+[![codecov](https://codecov.io/gh/ben-walters/access-token-generator/graph/badge.svg)](https://codecov.io/gh/ben-walters/access-token-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A robust utility for generating JSON Web Tokens (JWTs) with support for tenant-based permissions, user payload customization, and flexible signing options. This package is ideal for applications requiring secure and scalable authentication and authorization mechanisms.
@@ -58,7 +58,7 @@ Generate a token with tenant-specific roles and permissions.
 **Code (`src/example-tenants.ts`):**
 
 ```typescript
-import { AccessTokenGenerator } from 'auth-token-generator';
+import { AccessTokenGenerator } from 'access-token-generator';
 
 const generator = new AccessTokenGenerator({
   payloadOptions: {
@@ -84,7 +84,7 @@ Use an asymmetric signing algorithm and configure additional options.
 **Code (`src/example-advanced.ts`):**
 
 ```typescript
-import { AccessTokenGenerator } from 'auth-token-generator';
+import { AccessTokenGenerator } from 'access-token-generator';
 import { readFileSync } from 'fs';
 
 const privateKey = readFileSync('./private-key.pem');
