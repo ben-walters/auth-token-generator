@@ -47,7 +47,7 @@ const generator = new AccessTokenGenerator({
   signingKey: 'your-secret-key',
 });
 
-const token = generator.getJWT({ expiredIn: '1h' });
+const token = generator.getJWT(); // defaults to 15m expiry
 console.log(token);
 ```
 
@@ -73,7 +73,7 @@ const generator = new AccessTokenGenerator({
   ],
 });
 
-const token = generator.getJWT({ expiredIn: '2h' });
+const token = generator.getJWT(); // defaults to 15m expiry
 console.log(token);
 ```
 
@@ -101,7 +101,7 @@ const generator = new AccessTokenGenerator({
 });
 
 const token = generator.getJWT({
-  expiresAt: new Date(Date.now() + 3600 * 1000),
+  expiresAt: new Date(Date.now() + 3600 * 1000), // Set your own expiry
 });
 console.log(token);
 ```
@@ -209,6 +209,7 @@ new AccessTokenGenerator(params: {
   tenants?: TenantPermissions[];
   issuer?: string;
   type?: string;
+  kid?: string;
 });
 ```
 
@@ -218,6 +219,7 @@ new AccessTokenGenerator(params: {
 - `tenants`: Optional tenant-specific roles and permissions.
 - `issuer`: The token issuer (default: `'my-issuer'`).
 - `type`: The token type (default: `'access'`).
+- `kid`: The kid to be included in the token.
 
 #### Methods
 

@@ -48,21 +48,21 @@ export class AccessTokenGenerator {
   public tenants: TenantMap = {};
   public baseTenants: TenantMap = {};
   public masterKey?: string;
+  public kid: string;
 
   private readonly type: string;
   private readonly issuer: string = 'my-issuer';
-  // v-- UPDATE the type here
   private readonly signingKey: string | Buffer | KeyObject;
   private readonly algorithm: jwt.Algorithm;
 
   constructor(params: {
     payloadOptions: TokenPayloadOptions;
-    // v-- AND update the type here
     signingKey: string | Buffer | KeyObject;
     algorithm?: jwt.Algorithm;
     tenants?: TenantPermissions[];
     issuer?: string;
     type?: string;
+    kid?: string;
   }) {
     const algo = params.algorithm ?? 'HS256';
     if (Buffer.isBuffer(params.signingKey) && algo === 'HS256') {
@@ -74,6 +74,7 @@ export class AccessTokenGenerator {
 
     this.signingKey = params.signingKey;
     this.algorithm = algo;
+    this.kid = params.kid ?? randomUUID();
 
     this.user = {
       email: params.payloadOptions.email,
@@ -131,6 +132,7 @@ export class AccessTokenGenerator {
 
   public getJWT(opts: { expiresAt?: Date; expiredIn?: string } = {}): string {
     const payload = {
+      kid: this.kid,
       typ: this.type,
       user: this.user,
       tenants: this.tenants,
